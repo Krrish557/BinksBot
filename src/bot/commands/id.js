@@ -1,28 +1,46 @@
+import { InlineKeyboard } from 'grammy';
+
+const ONBOARDING_URL = 'https://binks.app/onboarding';
+
 export function registerIdCommand(bot) {
-  // Unified /id command handler
   bot.command('id', async (ctx) => {
     try {
       const userId = String(ctx.from?.id);
       const replied = ctx.message?.reply_to_message;
 
-      // If replying to a forwarded message, show the forward origin channel ID
       if (replied?.forward_origin?.chat) {
+        const channelId = String(replied.forward_origin.chat.id);
+        const keyboard = new InlineKeyboard()
+          .copyText('📋 Copy User ID', userId)
+          .copyText('📋 Copy Channel ID', channelId);
+
         return await ctx.reply(
-          `User ID: ${userId}\nForwarded Channel ID: ${replied.forward_origin.chat.id}`
+          `User ID: \`${userId}\`\nForwarded Channel ID: \`${channelId}\``,
+          {
+            parse_mode: 'Markdown',
+            reply_markup: keyboard,
+          }
         );
       }
 
       const text = ctx.message?.text || '';
       const args = text.split(' ').slice(1);
 
-      // No arguments — just user ID
       if (args.length === 0) {
-        return await ctx.reply(`User ID: ${userId}`);
+        const keyboard = new InlineKeyboard()
+          .copyText('📋 Copy User ID', userId);
+
+        return await ctx.reply(
+          `Your User ID: \`${userId}\``,
+          {
+            parse_mode: 'Markdown',
+            reply_markup: keyboard,
+          }
+        );
       }
 
       const input = args[0].trim();
 
-      // Reject private invite links
       if (
         input.startsWith('https://t.me/+') ||
         input.startsWith('https://telegram.me/+')
@@ -38,22 +56,29 @@ export function registerIdCommand(bot) {
 
       let username = input;
 
-      // Handle public t.me links
       if (input.startsWith('https://t.me/')) {
         username = input
           .replace('https://t.me/', '')
           .split('/')[0];
       }
 
-      // Ensure @ prefix
       if (!username.startsWith('@')) {
         username = `@${username}`;
       }
 
       const chat = await ctx.api.getChat(username);
+      const channelId = String(chat.id);
+
+      const keyboard = new InlineKeyboard()
+        .copyText('📋 Copy User ID', userId)
+        .copyText('📋 Copy Channel ID', channelId);
 
       await ctx.reply(
-        `User ID: ${userId}\nChannel ID: ${chat.id}`
+        `User ID: \`${userId}\`\nChannel ID: \`${channelId}\``,
+        {
+          parse_mode: 'Markdown',
+          reply_markup: keyboard,
+        }
       );
 
     } catch (error) {
@@ -70,7 +95,6 @@ export function registerIdCommand(bot) {
     }
   });
 
-  // Forwarded message handler — only reply with ID for text messages
   bot.on('message:forward_origin', async (ctx, next) => {
     try {
       const msg = ctx.message;
@@ -78,14 +102,29 @@ export function registerIdCommand(bot) {
 
       if (!forwardChat) return;
 
-      // For audio/document — pass through so the audio handler can process it
       if (msg.audio || (msg.document && msg.document.mime_type?.startsWith('audio/'))) {
         await next();
         return;
       }
 
+      const userId = String(ctx.from?.id);
+      const channelId = String(forwardChat.id);
+
+      const keyboard = new InlineKeyboard()
+        .copyText('📋 Copy Channel ID', channelId)
+        .row()
+        .url('🔗 Continue in Onboarding', ONBOARDING_URL);
+
       await ctx.reply(
-        `Forwarded Channel ID: ${forwardChat.id}`
+        '✅ Channel detected!\n\n' +
+        `Channel Name: ${forwardChat.title || 'Unknown'}\n` +
+        `Channel ID: \`${channelId}\`\n\n` +
+        'Step 3 — Copy the Channel ID above and paste it into the Binks onboarding page.\n\n' +
+        'Once you complete onboarding in the app, you can start sending me audio files! 🎵',
+        {
+          parse_mode: 'Markdown',
+          reply_markup: keyboard,
+        }
       );
 
     } catch (error) {
