@@ -1,4 +1,5 @@
 import { InlineKeyboard } from 'grammy';
+import { logger } from '../../utils/logger.js';
 
 const ONBOARDING_URL = 'https://binks.app/onboarding';
 
@@ -82,7 +83,7 @@ export function registerIdCommand(bot) {
       );
 
     } catch (error) {
-      console.error(error);
+      logger.error({ err: error }, 'Failed to get chat info');
 
       await ctx.reply(
         'Failed to fetch channel ID.\n\n' +
@@ -98,14 +99,15 @@ export function registerIdCommand(bot) {
   bot.on('message:forward_origin', async (ctx, next) => {
     try {
       const msg = ctx.message;
-      const forwardChat = msg.forward_origin?.chat;
-
-      if (!forwardChat) return;
 
       if (msg.audio || (msg.document && msg.document.mime_type?.startsWith('audio/'))) {
         await next();
         return;
       }
+
+      const forwardChat = msg.forward_origin?.chat;
+
+      if (!forwardChat) return;
 
       const userId = String(ctx.from?.id);
       const channelId = String(forwardChat.id);
@@ -128,7 +130,7 @@ export function registerIdCommand(bot) {
       );
 
     } catch (error) {
-      console.error(error);
+      logger.error({ err: error }, 'Failed to process forward origin');
     }
   });
 }

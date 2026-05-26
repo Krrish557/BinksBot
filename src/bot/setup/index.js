@@ -1,5 +1,3 @@
-import { Bot } from 'grammy';
-import { config } from '../../config/index.js';
 import { getBot } from '../../telegram/services/client.js';
 import { registerPingCommand } from '../commands/ping.js';
 import { registerIdCommand } from '../commands/id.js';

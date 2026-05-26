@@ -4,9 +4,27 @@ import { dirname } from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { logger } from './logger.js';
 
+function createMutex() {
+  let queue = Promise.resolve();
+  return {
+    async run(fn) {
+      await new Promise((resolve, reject) => {
+        queue = queue.then(async () => {
+          try {
+            resolve(await fn());
+          } catch (err) {
+            reject(err);
+          }
+        });
+      });
+    },
+  };
+}
+
 export function createStore(filePath, defaults) {
   let store = { ...defaults };
   let loaded = false;
+  const mutex = createMutex();
 
   async function ensureDir() {
     await mkdir(dirname(filePath), { recursive: true });
@@ -28,10 +46,12 @@ export function createStore(filePath, defaults) {
   }
 
   async function save() {
-    await ensureDir();
-    const tmpPath = filePath + '.' + randomUUID() + '.tmp';
-    await writeFile(tmpPath, JSON.stringify(store, null, 2), 'utf-8');
-    await rename(tmpPath, filePath);
+    await mutex.run(async () => {
+      await ensureDir();
+      const tmpPath = filePath + '.' + randomUUID() + '.tmp';
+      await writeFile(tmpPath, JSON.stringify(store, null, 2), 'utf-8');
+      await rename(tmpPath, filePath);
+    });
   }
 
   function get() {

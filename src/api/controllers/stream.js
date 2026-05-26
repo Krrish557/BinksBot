@@ -38,7 +38,11 @@ export async function streamTrack(request, reply) {
 
   result.body.on('error', (streamErr) => {
     clearTimeout(streamTimeout);
-    logger.error({ err: streamErr, trackId }, 'Stream error');
+    if (streamErr?.code === 'UND_ERR_ABORTED') {
+      logger.warn({ trackId }, 'Stream aborted (client disconnected)');
+    } else {
+      logger.error({ err: streamErr, trackId }, 'Stream error');
+    }
     if (!reply.raw.destroyed) {
       reply.raw.destroy();
     }

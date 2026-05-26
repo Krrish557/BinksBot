@@ -12,6 +12,10 @@ import { loadIndexes } from './storage/indexes/index.js';
 async function main() {
   logger.info({ env: config.env }, 'Starting Binks Telegram Backend...');
 
+  if (!config.api.authToken && config.env === 'production') {
+    logger.warn('API_AUTH_TOKEN not set — API endpoints are unprotected');
+  }
+
   await loadMappings();
   await loadIndexes();
   logger.info('Storage initialized');
@@ -25,7 +29,7 @@ async function main() {
   await app.register(cors, {
     origin: true,
     methods: ['GET', 'POST', 'HEAD', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Range', 'Accept-Ranges'],
+    allowedHeaders: ['Content-Type', 'Range', 'Accept-Ranges', 'x-api-token'],
     exposedHeaders: ['Content-Range', 'Accept-Ranges', 'Content-Length', 'X-File-Size'],
   });
 

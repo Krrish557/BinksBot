@@ -10,6 +10,7 @@ const envSchema = z.object({
   STORAGE_DIR: z.string().default('./data'),
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
   LOG_LEVEL: z.enum(['trace', 'debug', 'info', 'warn', 'error', 'fatal']).default('info'),
+  API_AUTH_TOKEN: z.string().optional(),
 });
 
 function validateEnv() {
@@ -37,5 +38,8 @@ export const config = {
   env: env.NODE_ENV,
   log: {
     level: env.LOG_LEVEL,
+  },
+  api: {
+    authToken: env.API_AUTH_TOKEN || null,
   },
 };
